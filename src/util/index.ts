@@ -20,6 +20,7 @@ type BillBuddyState = {
   editItemName: (id: number, name: string) => void
   editItemPrice: (id: number, price: number) => void
   editItemCount: (id: number, count: number) => void
+  toggleItemMember: (id: number, memberId: number) => void
   removeItem: (id: number) => void
   setNotes: (note: string) => void
 };
@@ -29,6 +30,7 @@ export type Item = {
   name: string
   price: number
   count: number
+  members: number[]
 };
 
 export const useBillBuddyStore = create<BillBuddyState>()(set => ({
@@ -39,6 +41,7 @@ export const useBillBuddyStore = create<BillBuddyState>()(set => ({
   addItem: item => set((state) => {
     const newItem = item;
     newItem.id = state.id;
+    newItem.members = [];
     return { ...state, items: [...state.items, item], id: state.id + 1 };
   }),
   editItemName: (id, name) => set((state) => {
@@ -59,6 +62,22 @@ export const useBillBuddyStore = create<BillBuddyState>()(set => ({
     items[idx].count = count;
     return { ...state, items };
   }),
+  toggleItemMember: (id, memberId) => set((state) => {
+    const items = state.items;
+    const idx = items.findIndex(v => v.id == id);
+    const memberIdx = items[idx].members.findIndex(v => v == memberId);
+    console.log('toggling');
+    if (memberIdx === -1) {
+      console.log('adding', idx, memberId);
+      items[idx].members.push(memberId);
+    }
+    else {
+      console.log('removing', idx, memberId);
+      items[idx].members = items[idx].members.filter(v => v != memberId);
+    }
+    console.log('done', items);
+    return { ...state, items };
+  }),
   removeItem: id => set(state => ({ ...state, items: state.items.filter(v => v.id != id) })),
   setNotes: note => set(state => ({ ...state, notes: note })),
 }));
@@ -72,7 +91,7 @@ type MemberState = {
   removeMember: (id: number) => void
 };
 
-type Member = {
+export type Member = {
   id: number
   name: string
   color: string

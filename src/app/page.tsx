@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 import { processReceiptGemini } from '@/core';
-import { useApiKeyStore, useBillBuddyStore, useMemberStore } from '@/util';
+import { Item, Member, useApiKeyStore, useBillBuddyStore, useMemberStore } from '@/util';
 import Cropper from 'cropperjs';
 import { useEffect, useRef, useState } from 'react';
 
@@ -107,6 +107,7 @@ export default function Home() {
                     <div key={member.id} className="flex gap-2 mb-2">
                       <input type="color" className="rounded-full h-8 w-8" value={member.color} onChange={e => memberStore.editMemberColor(member.id, e.target.value)} />
                       <input type="text" value={member.name} onChange={e => memberStore.editMemberName(member.id, e.target.value)} />
+                      <button onClick={() => memberStore.removeMember(member.id)}>Delete</button>
                     </div>
                   ))}
                   <button onClick={() => setCurrentPages(Pages.Bill)}>Continue</button>
@@ -124,17 +125,73 @@ export default function Home() {
                     <>
                       <h1 className="text-2xl">Bill</h1>
                       {billBuddyStore.items.map(item => (
-                        <div key={item.id}>
+                        <div key={item.id} className="flex gap-2 mb-2">
                           <input type="number" value={item.count} onChange={e => billBuddyStore.editItemCount(item.id, Number(e.target.value))} />
                           <input type="text" value={item.name} onChange={e => billBuddyStore.editItemName(item.id, e.target.value)} />
                           <input type="number" value={item.price} onChange={e => billBuddyStore.editItemPrice(item.id, Number(e.target.value))} />
+                          <div className="flex">
+                            {memberStore.members.map(member => (
+                              <div className="rounded-full h-8 w-8 cursor-pointer" style={{ backgroundColor: member.color }} key={member.id} onClick={() => billBuddyStore.toggleItemMember(item.id, member.id)} />
+                            ))}
+                          </div>
+                          <button onClick={() => billBuddyStore.removeItem(item.id)}>Delete</button>
+                        </div>
+                      ))}
+                      <button onClick={() => setCurrentPages(Pages.Result)}>Finish</button>
+                    </>
+                  )
+              : currentPage === Pages.Result
+                ? (
+                    <>
+                      {calculateResult(billBuddyStore.items, memberStore.members).map(result => (
+                        <div key={result.id}>
+                          <p>
+                            <input type="color" className="rounded-full h-8 w-8" value={result.color} disabled />
+                            {result.name}
+                          </p>
+                          {result.items.map(item => (
+                            <div key={item.id}>
+                              {item.name}
+                              {' '}
+                              -
+                              {item.price / item.split}
+                            </div>
+                          ))}
                         </div>
                       ))}
                     </>
                   )
-              : (
-                  <h1 className="text-5xl">Not Found :(</h1>
-                )}
+                : (
+                    <h1 className="text-5xl">Not Found :(</h1>
+                  )}
     </div>
   );
 }
+
+type ItemPerMember = Member & {
+  items: (Item & { split: number })[]
+};
+
+const calculateResult = (items: Item[], members: Member[]) => {
+  const itemPerMember: ItemPerMember[] = [];
+  members.forEach((member) => {
+    itemPerMember.push({
+      ...member,
+      items: [],
+    });
+  });
+  console.log('wut', items);
+  items.forEach((item) => {
+    const splitCount = item.members.length;
+    item.members.forEach((id) => {
+      const idx = itemPerMember.findIndex(v => v.id == id);
+      console.log('wtf', idx, item);
+      itemPerMember[idx].items.push({
+        ...item,
+        split: splitCount,
+      });
+    });
+  });
+  console.log(itemPerMember);
+  return itemPerMember;
+};
