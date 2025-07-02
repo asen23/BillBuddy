@@ -83,7 +83,7 @@ export default function Home() {
                     apikey.setApiKey(e.target.value);
                   }}
                 />
-                <button>Done</button>
+                <button onClick={() => setCurrentPages(Pages.Home)}>Done</button>
               </>
             )
           : (
