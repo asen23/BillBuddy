@@ -1,0 +1,15 @@
+{
+  // Project-level OpenCode configuration. See https://opencode.ai/v2/docs/config
+  "$schema": "https://opencode.ai/config.json",
+
+  "permissions": [
+    // In-project targets arrive as relative paths and are allowed; explicit
+    // paths outside the project arrive as absolute paths and still ask.
+    { "action": "edit", "resource": "*", "effect": "allow" },
+    { "action": "edit", "resource": "/*", "effect": "ask" },
+
+    // Git runs without prompts in this project, including push (this
+    // overrides the global `git push *` deny).
+    { "action": "shell", "resource": "git *", "effect": "allow" },
+  ],
+}
