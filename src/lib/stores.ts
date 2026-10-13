@@ -13,7 +13,7 @@ export const useApiKeyStore = create<ApiKeyState>()(
       apiKey: "",
       setApiKey: (apiKey) => set({ apiKey }),
     }),
-    { name: "billbuddy.apiKey" },
+    { name: "billbuddy.apiKey", skipHydration: true },
   ),
 );
 
@@ -119,6 +119,19 @@ export const useBillStore = create<BillState>()(
         })),
       resetBill: () => set(emptyBill),
     }),
-    { name: "billbuddy.bill", version: 1 },
+    { name: "billbuddy.bill", version: 1, skipHydration: true },
   ),
 );
+
+type ExtractionStatus = "idle" | "working";
+
+type ExtractionState = {
+  status: ExtractionStatus;
+  setStatus: (status: ExtractionStatus) => void;
+};
+
+/** Transient (not persisted) receipt-extraction status, shared across routes. */
+export const useExtractionStore = create<ExtractionState>()((set) => ({
+  status: "idle",
+  setStatus: (status) => set({ status }),
+}));
