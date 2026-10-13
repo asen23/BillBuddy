@@ -31,12 +31,12 @@ A single 197-line client component (`src/app/page.tsx`) renders five pseudo-page
 
 ### Routes (Next.js App Router, client-rendered)
 
-| Route      | Screen    | Contents                                                          |
-| ---------- | --------- | ----------------------------------------------------------------- |
-| `/`        | Upload    | Receipt picker, crop canvas, extract action, error/empty state     |
-| `/members` | Members   | Member list (name + color), add/remove, continue                   |
-| `/bill`    | Bill      | Item editor (count/name/unit price), assignment chips, unassigned flags, finish |
-| `/result`  | Result    | Per-member shares and totals, receipt-tape styling, New bill       |
+| Route      | Screen  | Contents                                                                        |
+| ---------- | ------- | ------------------------------------------------------------------------------- |
+| `/`        | Upload  | Receipt picker, crop canvas, extract action, error/empty state                  |
+| `/members` | Members | Member list (name + color), add/remove, continue                                |
+| `/bill`    | Bill    | Item editor (count/name/unit price), assignment chips, unassigned flags, finish |
+| `/result`  | Result  | Per-member shares and totals, receipt-tape styling, New bill                    |
 
 A shared shell (route group) renders the header (theme toggle, key settings, New bill) and the step indicator. The key gate is a dialog owned by the shell, not a route.
 
