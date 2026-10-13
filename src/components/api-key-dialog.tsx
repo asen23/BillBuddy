@@ -10,8 +10,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { classifyGeminiError, KEY_TEST_MESSAGES } from "@/lib/gemini-error";
 import { useApiKeyStore } from "@/lib/stores";
+import { GoogleGenAI } from "@google/genai";
 import { useState } from "react";
+
+const TEST_TIMEOUT_MS = 15_000;
+
+type TestStatus =
+  | { kind: "idle" }
+  | { kind: "testing" }
+  | { kind: "ok" }
+  | { kind: "error"; message: string };
 
 type ApiKeyDialogProps = {
   open: boolean;
@@ -28,6 +38,29 @@ export function ApiKeyDialog({
   const storedKey = useApiKeyStore((state) => state.apiKey);
   const setApiKey = useApiKeyStore((state) => state.setApiKey);
   const [value, setValue] = useState(storedKey);
+  const [status, setStatus] = useState<TestStatus>({ kind: "idle" });
+
+  const testing = status.kind === "testing";
+  const canSubmit = value.trim().length > 0;
+
+  /** Check the key currently in the field, without saving or dismissing. */
+  const testKey = async () => {
+    setStatus({ kind: "testing" });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TEST_TIMEOUT_MS);
+    try {
+      const ai = new GoogleGenAI({ apiKey: value.trim() });
+      await ai.models.list({ config: { abortSignal: controller.signal } });
+      setStatus({ kind: "ok" });
+    } catch (error) {
+      const reason = classifyGeminiError(error, {
+        aborted: controller.signal.aborted,
+      });
+      setStatus({ kind: "error", message: KEY_TEST_MESSAGES[reason] });
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
 
   return (
     <Dialog
@@ -53,8 +86,24 @@ export function ApiKeyDialog({
             autoFocus
             placeholder="Paste your key"
             value={value}
-            onChange={(event) => setValue(event.target.value)}
+            onChange={(event) => {
+              setValue(event.target.value);
+              setStatus({ kind: "idle" });
+            }}
           />
+          {status.kind === "testing" ? (
+            <p className="text-muted-foreground text-sm">Testing…</p>
+          ) : null}
+          {status.kind === "ok" ? (
+            <p role="status" className="text-sm">
+              Key works.
+            </p>
+          ) : null}
+          {status.kind === "error" ? (
+            <p role="status" className="text-destructive text-sm">
+              {status.message}
+            </p>
+          ) : null}
         </div>
         <DialogFooter>
           {dismissable ? (
@@ -63,8 +112,16 @@ export function ApiKeyDialog({
             </Button>
           ) : null}
           <Button
+            variant="outline"
             className="h-10"
-            disabled={value.trim().length === 0}
+            disabled={testing || !canSubmit}
+            onClick={testKey}
+          >
+            Test
+          </Button>
+          <Button
+            className="h-10"
+            disabled={!canSubmit}
             onClick={() => {
               setApiKey(value.trim());
               onOpenChange(false);

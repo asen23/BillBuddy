@@ -4,6 +4,7 @@ import {
   GoogleGenAI,
   Type,
 } from "@google/genai";
+import { classifyGeminiError, EXTRACTION_ERROR_MESSAGES } from "./gemini-error";
 import { useBillStore, useExtractionStore } from "./stores";
 import type { ItemDraft } from "./types";
 
@@ -121,11 +122,10 @@ const run = async (blob: Blob, apiKey: string) => {
   } catch (error) {
     if (runState.cancelled) return;
     console.error("Receipt extraction failed:", error);
-    fail(
-      runState.controller.signal.aborted
-        ? "The receipt took too long to read — check your connection, then retry."
-        : "Couldn't read the receipt — check your API key and connection, then retry.",
-    );
+    const reason = classifyGeminiError(error, {
+      aborted: runState.controller.signal.aborted,
+    });
+    fail(EXTRACTION_ERROR_MESSAGES[reason]);
   } finally {
     clearTimeout(timeout);
     if (uploadedName) {

@@ -1,4 +1,5 @@
 import { type Page, type Route } from "@playwright/test";
+import { readFileSync } from "node:fs";
 
 export const API_KEY = "test-api-key";
 
@@ -153,3 +154,38 @@ export const uploadReceipt = async (page: Page) => {
   await page.setInputFiles("#receipt-input", "e2e/fixtures/receipt.png");
   await page.getByRole("button", { name: "Read receipt" }).click();
 };
+
+/**
+ * Drop an in-memory file onto the upload page's drop zone. The bytes go over
+ * as a data URL so nothing has to be fetched from a server.
+ */
+export const dropFile = async (
+  page: Page,
+  file: { name: string; type: string; bytes: Buffer },
+) => {
+  const dataTransfer = await page.evaluateHandle(
+    async ({ dataUrl, name, type }) => {
+      const blob = await (await fetch(dataUrl)).blob();
+      const transfer = new DataTransfer();
+      transfer.items.add(new File([blob], name, { type }));
+      return transfer;
+    },
+    {
+      dataUrl: `data:${file.type};base64,${file.bytes.toString("base64")}`,
+      name: file.name,
+      type: file.type,
+    },
+  );
+  const target = 'label[for="receipt-input"]';
+  await page.dispatchEvent(target, "dragenter", { dataTransfer });
+  await page.dispatchEvent(target, "dragover", { dataTransfer });
+  await page.dispatchEvent(target, "drop", { dataTransfer });
+};
+
+/** Drop the fixture receipt onto the upload page's drop zone. */
+export const dropReceipt = (page: Page) =>
+  dropFile(page, {
+    name: "receipt.png",
+    type: "image/png",
+    bytes: readFileSync("e2e/fixtures/receipt.png"),
+  });

@@ -15,13 +15,13 @@ One job, done exactly: photograph a receipt, pick who shared what, show every me
 
 ## 2. Product flows
 
-**Happy path**: key gate → upload & crop → extraction ("Processing…" with the option to cancel) → members (add, name, color) → bill (edit items; tap member chips to assign; unassigned items flagged) → result (per-item breakdown per member + totals; New bill).
+**Happy path**: key gate → upload & crop (choose, photograph, or drag-and-drop a photo) → extraction ("Processing…" with the option to cancel) → members (add, name, color) → bill (edit items; tap member chips to assign; unassigned items flagged) → result (per-item breakdown per member + totals; New bill).
 
-**Key gate**: on first visit with no stored key, a non-dismissable dialog asks for the Gemini API key. Reachable again anytime from the header ("Settings") to change it.
+**Key gate**: on first visit with no stored key, a non-dismissable dialog asks for the Gemini API key. Reachable again anytime from the header ("Settings") to change it. The dialog can **Test** a key against Gemini before saving; testing shows the result inline and never blocks saving.
 
 **Refresh anytime**: the wizard is route-based and the bill is persisted; a refresh mid-flow resumes on the same step with the same data.
 
-**Extraction failure**: the bill screen shows what failed and offers Retry; no items are partially added; the uploaded file is always deleted from Gemini's store, success or failure.
+**Extraction failure**: the bill screen shows what failed and offers Retry; a busy model (503) is labelled as such rather than blamed on the key; no items are partially added; the uploaded file is always deleted from Gemini's store, success or failure.
 
 ## 3. Starting point (before this work)
 
@@ -53,6 +53,7 @@ src/
     ├── types.ts         # Bill, Item, Member, Share, MemberResult (domain types)
     ├── split.ts         # pure split math — no React, no store
     ├── receipt.ts       # Gemini extraction (upload → generate → cleanup)
+    ├── gemini-error.ts  # shared Gemini failure classification (status → reason → message)
     ├── stores.ts        # bill + apiKey Zustand stores (persisted, versioned)
     └── format.ts        # rupiah formatting (Intl, id-ID, no decimals)
 ```
@@ -76,7 +77,7 @@ receipt image ──crop──▶ Blob ──▶ Gemini (extract items JSON)
 
 ### Error handling
 
-Extraction is an explicit state machine: `idle → uploading → extracting → idle | error`. An `error` carries a message and a Retry action (the cropped blob is kept so retrying needs no re-upload); while uploading or extracting, Cancel aborts the run. A 120-second timeout bounds every request. The uploaded file is deleted in `finally`, success or failure. The model name lives in one constant (`gemini-3.8-flash`); the Gemini API response is shape-checked before touching the store.
+Extraction is an explicit state machine: `idle → uploading → extracting → idle | error`. An `error` carries a message and a Retry action (the cropped blob is kept so retrying needs no re-upload); while uploading or extracting, Cancel aborts the run. A 120-second timeout bounds every request. The uploaded file is deleted in `finally`, success or failure. The model name lives in one constant (`gemini-3.8-flash`); the Gemini API response is shape-checked before touching the store. Failures are classified in one place (`lib/gemini-error.ts`): invalid key, rate-limited, busy (503), timeout, unreachable, or generic — the Bill screen and the key dialog's Test action read from that same classification, so 503 reads as "model busy" everywhere instead of a generic error.
 
 ## 5. Domain model
 
@@ -103,7 +104,7 @@ Worked example: "Nasi Goreng", count 2, unit price Rp15.000 → line total Rp30.
 
 **Mobile-first**: single-column, thumb-height controls; desktop is the same column, centered with a comfortable max width. Money is always formatted `Rp 30.000` (whole rupiah).
 
-**Key screens**: Upload — a big "Take / choose photo" target and the crop surface. Members — chip rows with color swatch, name field, delete. Bill — receipt-like rows: count × name × unit price, member color dots that toggle assignment, an "Unassigned" flag on the row. Result — per-member cards with per-item lines ("2 × Rp15.000 — split 2 ways") and a bold Total.
+**Key screens**: Upload — a big "Take / choose photo" target that doubles as a drop zone (highlighted on drag-over), and the crop surface. Members — chip rows with color swatch, name field, delete. Bill — receipt-like rows: count × name × unit price, member color dots that toggle assignment, an "Unassigned" flag on the row. Result — per-member cards with per-item lines ("2 × Rp15.000 — split 2 ways") and a bold Total. The key dialog offers a Test action beside Save.
 
 ## 7. Testing & CI
 
@@ -128,4 +129,4 @@ Each workstream shipped as its own PR (squash-merged, signed); `main` stayed gre
 
 ## 9. Out of scope
 
-No new product features beyond the above: no multi-currency, no language toggle (UI stays English), no accounts, no server proxy, no PWA/offline, no shareable result links, no analytics. No unit tests (ADR-0002), no cross-browser e2e beyond Chromium, no Docker/deploy configuration changes.
+No multi-currency, no language toggle (UI stays English), no accounts, no server proxy, no PWA/offline, no shareable result links, no analytics. No unit tests (ADR-0002), no cross-browser e2e beyond Chromium, no Docker/deploy configuration changes.

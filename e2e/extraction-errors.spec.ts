@@ -47,7 +47,7 @@ test("an API failure surfaces with Retry, which recovers", async ({ page }) => {
 
   await expect(
     page.getByText(
-      "Couldn't read the receipt — check your API key and connection, then retry.",
+      "Gemini rejected your API key — open Settings and check it, then retry.",
     ),
   ).toBeVisible();
 
@@ -79,6 +79,43 @@ test("an empty read is an actionable error, not an empty bill", async ({
   await expect(
     page.getByText("No items yet. Go back and read a receipt first."),
   ).toHaveCount(0);
+});
+
+test("a busy model (503) gets its own message, not the generic one", async ({
+  page,
+}) => {
+  await seedStorage(page, { apiKey: API_KEY });
+  await routeGemini(page, async (route, kind) => {
+    if (kind === "upload-start") return fulfillUploadStart(route);
+    if (kind === "upload-bytes") return fulfillUploadBytes(route);
+    if (kind === "generate") {
+      return route.fulfill({
+        status: 503,
+        headers: CORS_HEADERS,
+        json: {
+          error: {
+            code: 503,
+            message: "model overloaded",
+            status: "UNAVAILABLE",
+          },
+        },
+      });
+    }
+    return fulfillJson(route, {});
+  });
+
+  await uploadReceipt(page);
+  await page.getByRole("button", { name: "Continue" }).click();
+
+  await expect(
+    page.getByText("Gemini is overloaded right now — wait a moment and retry."),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "Couldn't read the receipt — check your API key and connection, then retry.",
+    ),
+  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
 });
 
 test("Cancel aborts a slow extraction", async ({ page }) => {
