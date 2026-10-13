@@ -1,13 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 import { processReceiptGemini } from "@/core";
-import {
-  Item,
-  Member,
-  useApiKeyStore,
-  useBillBuddyStore,
-  useMemberStore,
-} from "@/util";
+import { formatRupiah } from "@/lib/format";
+import { computeResult } from "@/lib/split";
+import { useApiKeyStore, useBillStore } from "@/lib/stores";
 import type Cropper from "cropperjs";
 import { useEffect, useRef, useState } from "react";
 
@@ -23,11 +19,10 @@ export default function Home() {
   const [currentPage, setCurrentPages] = useState<Pages>(Pages.Home);
   const [loading, setLoading] = useState(false);
   const apikeyStore = useApiKeyStore();
-  const memberStore = useMemberStore();
-  const billBuddyStore = useBillBuddyStore();
+  const billStore = useBillStore();
   const image = useRef<HTMLInputElement>(null);
   const cropRef = useRef<HTMLImageElement>(null);
-  const cropper = useRef<Cropper>(null);
+  const cropper = useRef<Cropper | null>(null);
 
   useEffect(() => {
     if (!apikeyStore.apiKey) {
@@ -35,6 +30,9 @@ export default function Home() {
       setCurrentPages(Pages.ApiKey);
     }
   }, [apikeyStore.apiKey]);
+
+  const result = computeResult(billStore.items, billStore.members);
+
   return (
     <div className="flex min-h-screen w-screen flex-col items-center justify-center">
       {currentPage === Pages.Home ? (
@@ -81,7 +79,7 @@ export default function Home() {
                           e,
                           apikeyStore.apiKey,
                           setLoading,
-                          billBuddyStore.addItem,
+                          billStore.addItem,
                         );
                         setCurrentPages(Pages.Member);
                         if (cropper.current) {
@@ -112,26 +110,26 @@ export default function Home() {
       ) : currentPage === Pages.Member ? (
         <>
           <h1 className="text-2xl">
-            Member <span onClick={() => memberStore.addMember()}>+</span>
+            Member <span onClick={() => billStore.addMember()}>+</span>
           </h1>
-          {memberStore.members.map((member) => (
+          {billStore.members.map((member) => (
             <div key={member.id} className="mb-2 flex gap-2">
               <input
                 type="color"
                 className="h-8 w-8 rounded-full"
                 value={member.color}
                 onChange={(e) =>
-                  memberStore.editMemberColor(member.id, e.target.value)
+                  billStore.editMemberColor(member.id, e.target.value)
                 }
               />
               <input
                 type="text"
                 value={member.name}
                 onChange={(e) =>
-                  memberStore.editMemberName(member.id, e.target.value)
+                  billStore.editMemberName(member.id, e.target.value)
                 }
               />
-              <button onClick={() => memberStore.removeMember(member.id)}>
+              <button onClick={() => billStore.removeMember(member.id)}>
                 Delete
               </button>
             </div>
@@ -147,48 +145,42 @@ export default function Home() {
         ) : (
           <>
             <h1 className="text-2xl">Bill</h1>
-            {billBuddyStore.items.map((item) => (
+            {billStore.items.map((item) => (
               <div key={item.id} className="mb-2 flex gap-2">
                 <input
                   type="number"
                   value={item.count}
                   onChange={(e) =>
-                    billBuddyStore.editItemCount(
-                      item.id,
-                      Number(e.target.value),
-                    )
+                    billStore.editItemCount(item.id, Number(e.target.value))
                   }
                 />
                 <input
                   type="text"
                   value={item.name}
                   onChange={(e) =>
-                    billBuddyStore.editItemName(item.id, e.target.value)
+                    billStore.editItemName(item.id, e.target.value)
                   }
                 />
                 <input
                   type="number"
-                  value={item.price}
+                  value={item.unitPrice}
                   onChange={(e) =>
-                    billBuddyStore.editItemPrice(
-                      item.id,
-                      Number(e.target.value),
-                    )
+                    billStore.editItemUnitPrice(item.id, Number(e.target.value))
                   }
                 />
                 <div className="flex">
-                  {memberStore.members.map((member) => (
+                  {billStore.members.map((member) => (
                     <div
                       className="h-8 w-8 cursor-pointer rounded-full"
                       style={{ backgroundColor: member.color }}
                       key={member.id}
                       onClick={() =>
-                        billBuddyStore.toggleItemMember(item.id, member.id)
+                        billStore.toggleItemMember(item.id, member.id)
                       }
                     />
                   ))}
                 </div>
-                <button onClick={() => billBuddyStore.removeItem(item.id)}>
+                <button onClick={() => billStore.removeItem(item.id)}>
                   Delete
                 </button>
               </div>
@@ -200,26 +192,36 @@ export default function Home() {
         )
       ) : currentPage === Pages.Result ? (
         <>
-          {calculateResult(billBuddyStore.items, memberStore.members).map(
-            (result) => (
-              <div key={result.id}>
-                <p>
-                  <input
-                    type="color"
-                    className="h-8 w-8 rounded-full"
-                    value={result.color}
-                    disabled
-                  />
-                  {result.name}
-                </p>
-                {result.items.map((item) => (
-                  <div key={item.id}>
-                    {item.name} -{item.price / item.split}
-                  </div>
-                ))}
-              </div>
-            ),
+          {result.members.map(({ member, items: shares, total }) => (
+            <div key={member.id} className="mb-4">
+              <p className="font-bold">
+                <input
+                  type="color"
+                  className="h-8 w-8 rounded-full"
+                  value={member.color}
+                  disabled
+                />
+                {member.name || "(unnamed)"} — {formatRupiah(total)}
+              </p>
+              {shares.map(({ item, share, memberCount }) => (
+                <div key={item.id}>
+                  {item.name} ({item.count} × {formatRupiah(item.unitPrice)},
+                  split {memberCount} ways) — {formatRupiah(share)}
+                </div>
+              ))}
+            </div>
+          ))}
+          {result.unassigned.length > 0 && (
+            <div className="mb-4">
+              <p className="font-bold">Unassigned items</p>
+              {result.unassigned.map((item) => (
+                <div key={item.id}>
+                  {item.name} ({item.count} × {formatRupiah(item.unitPrice)})
+                </div>
+              ))}
+            </div>
           )}
+          <p className="font-bold">Total: {formatRupiah(result.total)}</p>
         </>
       ) : (
         <h1 className="text-5xl">Not Found :(</h1>
@@ -227,28 +229,3 @@ export default function Home() {
     </div>
   );
 }
-
-type ItemPerMember = Member & {
-  items: (Item & { split: number })[];
-};
-
-const calculateResult = (items: Item[], members: Member[]) => {
-  const itemPerMember: ItemPerMember[] = [];
-  members.forEach((member) => {
-    itemPerMember.push({
-      ...member,
-      items: [],
-    });
-  });
-  items.forEach((item) => {
-    const splitCount = item.members.length;
-    item.members.forEach((id) => {
-      const idx = itemPerMember.findIndex((v) => v.id == id);
-      itemPerMember[idx].items.push({
-        ...item,
-        split: splitCount,
-      });
-    });
-  });
-  return itemPerMember;
-};
