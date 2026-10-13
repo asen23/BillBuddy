@@ -1,4 +1,4 @@
-import { Item } from "@/util";
+import type { ItemDraft } from "@/lib/types";
 import {
   createPartFromUri,
   createUserContent,
@@ -6,11 +6,14 @@ import {
   Type,
 } from "@google/genai";
 
+/** Shape the extraction schema below returns (price = unit price). */
+type ExtractedItem = { name: string; count: number; price: number };
+
 export const processReceiptGemini = async (
   image: Blob,
   apiKey: string,
   setLoading: (loading: boolean) => void,
-  addItem: (item: Item) => void,
+  addItem: (item: ItemDraft) => void,
 ) => {
   setLoading(true);
   const ai = new GoogleGenAI({ apiKey });
@@ -50,7 +53,9 @@ export const processReceiptGemini = async (
   }
   setLoading(false);
   if (response.text) {
-    const data: Item[] = JSON.parse(response.text);
-    data.forEach((item) => addItem(item));
+    const data: ExtractedItem[] = JSON.parse(response.text);
+    data.forEach(({ name, count, price }) =>
+      addItem({ name, count, unitPrice: price }),
+    );
   }
 };
