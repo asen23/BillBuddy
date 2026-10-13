@@ -1,52 +1,79 @@
 "use client";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useApiKeyStore } from "@/lib/stores";
 import { useState } from "react";
 
 type ApiKeyDialogProps = {
+  open: boolean;
   /** When false the dialog cannot be dismissed without saving a key. */
   dismissable: boolean;
-  onClose?: () => void;
+  onOpenChange: (open: boolean) => void;
 };
 
-export function ApiKeyDialog({ dismissable, onClose }: ApiKeyDialogProps) {
+export function ApiKeyDialog({
+  open,
+  dismissable,
+  onOpenChange,
+}: ApiKeyDialogProps) {
   const storedKey = useApiKeyStore((state) => state.apiKey);
   const setApiKey = useApiKeyStore((state) => state.setApiKey);
   const [value, setValue] = useState(storedKey);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="flex w-full max-w-md flex-col gap-3 rounded-lg bg-white p-6 shadow-xl">
-        <h2 className="text-lg font-bold">Gemini API key</h2>
-        <p className="text-sm text-gray-600">
-          BillBuddy reads receipts with Gemini using your own API key. The key
-          is stored only in this browser.
-        </p>
-        <input
-          type="password"
-          autoFocus
-          placeholder="API key"
-          className="rounded border p-2"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-        />
-        <div className="flex justify-end gap-2">
-          {dismissable && onClose ? (
-            <button className="rounded px-3 py-2" onClick={onClose}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !dismissable) return;
+        onOpenChange(next);
+      }}
+    >
+      <DialogContent showCloseButton={dismissable}>
+        <DialogHeader>
+          <DialogTitle>Gemini API key</DialogTitle>
+          <DialogDescription>
+            BillBuddy reads receipts with Gemini using your own API key. The key
+            is stored only in this browser.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-2">
+          <Label htmlFor="api-key">API key</Label>
+          <Input
+            id="api-key"
+            type="password"
+            autoFocus
+            placeholder="Paste your key"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+          />
+        </div>
+        <DialogFooter>
+          {dismissable ? (
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
-            </button>
+            </Button>
           ) : null}
-          <button
-            className="rounded bg-black px-3 py-2 text-white disabled:opacity-50"
+          <Button
+            className="h-10"
             disabled={value.trim().length === 0}
             onClick={() => {
               setApiKey(value.trim());
-              onClose?.();
+              onOpenChange(false);
             }}
           >
             Save key
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

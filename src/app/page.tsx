@@ -1,15 +1,25 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { processReceiptGemini } from "@/core";
 import { useApiKeyStore, useBillStore, useExtractionStore } from "@/lib/stores";
 import type Cropper from "cropperjs";
+import { Camera, ScanText } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 export default function UploadPage() {
   const apiKey = useApiKeyStore((state) => state.apiKey);
   const addItem = useBillStore((state) => state.addItem);
   const setStatus = useExtractionStore((state) => state.setStatus);
+  const [ready, setReady] = useState(false);
   const router = useRouter();
   const image = useRef<HTMLInputElement>(null);
   const cropRef = useRef<HTMLImageElement>(null);
@@ -39,41 +49,63 @@ export default function UploadPage() {
   };
 
   return (
-    <>
-      <p>Upload your receipt here</p>
-      <input
-        type="file"
-        id="input"
-        accept="image/*"
-        ref={image}
-        onChange={() => {
-          if (image.current?.files?.[0]) {
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-              if (event.target && cropRef.current) {
-                const { default: CropperCtor } = await import("cropperjs");
-                if (cropper.current) {
-                  cropper.current.getCropperCanvas()!.remove();
-                  cropper.current = null;
+    <Card>
+      <CardHeader>
+        <CardTitle>Split a receipt</CardTitle>
+        <CardDescription>
+          Photograph the receipt, pick who shared it, get exact totals.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <label
+          htmlFor="receipt-input"
+          className="border-border text-muted-foreground hover:bg-muted/60 flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-sm transition-colors"
+        >
+          <Camera className="size-6" />
+          {ready ? "Choose a different photo" : "Take or choose a photo"}
+        </label>
+        <input
+          id="receipt-input"
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          ref={image}
+          onChange={() => {
+            if (image.current?.files?.[0]) {
+              const reader = new FileReader();
+              reader.onload = async (event) => {
+                if (event.target && cropRef.current) {
+                  const { default: CropperCtor } = await import("cropperjs");
+                  if (cropper.current) {
+                    cropper.current.getCropperCanvas()!.remove();
+                    cropper.current = null;
+                  }
+                  cropRef.current.src = event.target.result as string;
+                  cropper.current = new CropperCtor("#crop");
+                  cropper.current.getCropperCanvas()!.style.minWidth = "100%";
+                  cropper.current.getCropperCanvas()!.style.minHeight = "320px";
+                  cropper.current.getCropperSelection()!.initialCoverage = 1;
+                  setReady(true);
                 }
-                cropRef.current.src = event.target.result as string;
-                cropper.current = new CropperCtor("#crop");
-                cropper.current.getCropperCanvas()!.style.minWidth = "500px";
-                cropper.current.getCropperCanvas()!.style.minHeight = "500px";
-                cropper.current.getCropperSelection()!.initialCoverage = 1;
-              }
-            };
-            reader.readAsDataURL(image.current.files[0]);
-          }
-        }}
-      />
-      <img alt="" ref={cropRef} id="crop" />
-      <button
-        className="mt-2 rounded border px-3 py-1.5"
-        onClick={handleUpload}
-      >
-        Upload
-      </button>
-    </>
+              };
+              reader.readAsDataURL(image.current.files[0]);
+            }
+          }}
+        />
+        <div className="overflow-hidden rounded-lg">
+          <img alt="" ref={cropRef} id="crop" className="max-w-full" />
+        </div>
+        {ready ? (
+          <Button
+            size="lg"
+            className="h-12 w-full text-base"
+            onClick={handleUpload}
+          >
+            <ScanText />
+            Read receipt
+          </Button>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
