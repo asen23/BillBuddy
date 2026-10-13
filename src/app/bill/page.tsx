@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { formatRupiah } from "@/lib/format";
+import { cancelExtraction, retryExtraction } from "@/lib/receipt";
 import { useBillStore, useExtractionStore } from "@/lib/stores";
 import { cn } from "cn";
 import { ArrowRight, LoaderCircle, TriangleAlert, X } from "lucide-react";
@@ -16,18 +17,45 @@ export default function BillPage() {
   const editItemCount = useBillStore((state) => state.editItemCount);
   const toggleItemMember = useBillStore((state) => state.toggleItemMember);
   const removeItem = useBillStore((state) => state.removeItem);
-  const extractionStatus = useExtractionStore((state) => state.status);
+  const stage = useExtractionStore((state) => state.stage);
+  const errorMessage = useExtractionStore((state) => state.errorMessage);
   const router = useRouter();
 
-  if (extractionStatus === "working") {
+  if (stage === "uploading" || stage === "extracting") {
     return (
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-12">
           <LoaderCircle className="text-muted-foreground size-8 animate-spin" />
-          <p className="font-medium">Reading your receipt…</p>
+          <p className="font-medium">
+            {stage === "uploading"
+              ? "Uploading photo…"
+              : "Reading your receipt…"}
+          </p>
           <p className="text-muted-foreground text-sm">
             This usually takes a few seconds.
           </p>
+          <Button variant="outline" onClick={cancelExtraction}>
+            Cancel
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (stage === "error") {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center gap-3 py-12">
+          <TriangleAlert className="text-destructive size-8" />
+          <p className="text-center font-medium">
+            {errorMessage ?? "Couldn't read the receipt."}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => router.push("/")}>
+              Back to upload
+            </Button>
+            <Button onClick={retryExtraction}>Retry</Button>
+          </div>
         </CardContent>
       </Card>
     );

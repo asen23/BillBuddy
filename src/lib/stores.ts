@@ -128,15 +128,18 @@ export const useBillStore = create<BillState>()(
   ),
 );
 
-type ExtractionStatus = "idle" | "working";
+type ExtractionStage = "idle" | "uploading" | "extracting" | "error";
 
 type ExtractionState = {
-  status: ExtractionStatus;
-  setStatus: (status: ExtractionStatus) => void;
+  stage: ExtractionStage;
+  errorMessage: string | null;
+  /** Kept so a failed extraction can be retried without re-cropping. */
+  lastRequest: { blob: Blob; apiKey: string } | null;
 };
 
-/** Transient (not persisted) receipt-extraction status, shared across routes. */
-export const useExtractionStore = create<ExtractionState>()((set) => ({
-  status: "idle",
-  setStatus: (status) => set({ status }),
+/** Transient (not persisted) receipt-extraction state, shared across routes. */
+export const useExtractionStore = create<ExtractionState>()(() => ({
+  stage: "idle",
+  errorMessage: null,
+  lastRequest: null,
 }));

@@ -8,8 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { processReceiptGemini } from "@/core";
-import { useApiKeyStore, useBillStore, useExtractionStore } from "@/lib/stores";
+import { startExtraction } from "@/lib/receipt";
+import { useApiKeyStore } from "@/lib/stores";
 import type Cropper from "cropperjs";
 import { Camera, ScanText } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -17,8 +17,6 @@ import { useRef, useState } from "react";
 
 export default function UploadPage() {
   const apiKey = useApiKeyStore((state) => state.apiKey);
-  const addItem = useBillStore((state) => state.addItem);
-  const setStatus = useExtractionStore((state) => state.setStatus);
   const [ready, setReady] = useState(false);
   const router = useRouter();
   const image = useRef<HTMLInputElement>(null);
@@ -33,12 +31,7 @@ export default function UploadPage() {
       .then((canvas) => {
         canvas.toBlob((blob) => {
           if (!blob) return;
-          processReceiptGemini(
-            blob,
-            apiKey,
-            (working) => setStatus(working ? "working" : "idle"),
-            addItem,
-          );
+          startExtraction(blob, apiKey);
           if (cropper.current) {
             cropper.current.getCropperCanvas()!.remove();
             cropper.current = null;
