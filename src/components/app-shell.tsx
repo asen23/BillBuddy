@@ -77,6 +77,8 @@ function Shell({ children }: { children: ReactNode }) {
             <Button
               variant="outline"
               className="h-8"
+              aria-label="New bill"
+              title="New bill"
               onClick={() => {
                 resetBill();
                 router.push("/");
