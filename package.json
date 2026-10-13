@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "e2e": "playwright test"
   },
   "engines": {
     "node": ">=22"
@@ -28,6 +29,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",

@@ -118,8 +118,9 @@ const run = async (blob: Blob, apiKey: string) => {
       errorMessage: null,
       lastRequest: null,
     });
-  } catch {
+  } catch (error) {
     if (runState.cancelled) return;
+    console.error("Receipt extraction failed:", error);
     fail(
       runState.controller.signal.aborted
         ? "The receipt took too long to read — check your connection, then retry."
