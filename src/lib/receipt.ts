@@ -9,7 +9,7 @@ import type { ItemDraft } from "./types";
 
 /** Current stable Flash model; the old hardcoded gemini-2.5-flash is retired. */
 const MODEL = "gemini-3.8-flash";
-const TIMEOUT_MS = 45_000;
+const TIMEOUT_MS = 120_000;
 
 type ExtractedItem = { name: string; count: number; price: number };
 

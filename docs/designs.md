@@ -76,7 +76,7 @@ receipt image ──crop──▶ Blob ──▶ Gemini (extract items JSON)
 
 ### Error handling
 
-Extraction is an explicit state machine: `idle → uploading → extracting → idle | error`. An `error` carries a message and a Retry action (the cropped blob is kept so retrying needs no re-upload); while uploading or extracting, Cancel aborts the run. A 45-second timeout bounds every request. The uploaded file is deleted in `finally`, success or failure. The model name lives in one constant (`gemini-3.8-flash`); the Gemini API response is shape-checked before touching the store.
+Extraction is an explicit state machine: `idle → uploading → extracting → idle | error`. An `error` carries a message and a Retry action (the cropped blob is kept so retrying needs no re-upload); while uploading or extracting, Cancel aborts the run. A 120-second timeout bounds every request. The uploaded file is deleted in `finally`, success or failure. The model name lives in one constant (`gemini-3.8-flash`); the Gemini API response is shape-checked before touching the store.
 
 ## 5. Domain model
 
