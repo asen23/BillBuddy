@@ -19,15 +19,20 @@ BillBuddy runs entirely in your browser and uses **your own Gemini API key** —
 2. `npm install`
 3. `npm run dev` and open [http://localhost:3000](http://localhost:3000) — BillBuddy asks for the key on first launch and keeps it in this browser only.
 
-Deploying is a plain Next.js build (`npm run build`); nothing else to configure.
+## Deploy
+
+BillBuddy is a static export (`output: "export"`), published to GitHub Pages at
+<https://asen23.github.io/BillBuddy/>. [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
+builds `out/` and deploys it on every push to `main` (the repo's Pages source must be
+set to **GitHub Actions**). Nothing else to configure. See [ADR-0003](docs/adr/0003-static-export-github-pages.md).
 
 ## Scripts
 
 | Script              | What it does                      |
 | ------------------- | --------------------------------- |
 | `npm run dev`       | Dev server                        |
-| `npm run build`     | Production build                  |
-| `npm start`         | Production server                 |
+| `npm run build`     | Static export to `out/`           |
+| `npm start`         | Serve the `out/` export locally   |
 | `npm run lint`      | ESLint (flat config)              |
 | `npm run typecheck` | `tsc --noEmit`                    |
 | `npm run format`    | Prettier (sorts Tailwind classes) |

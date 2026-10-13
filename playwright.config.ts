@@ -27,7 +27,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run start -- -p ${PORT}`,
+    // The suite runs against the static export in `out/` (npm run build),
+    // not `next start`, which does not support `output: "export"`.
+    command: `npm run start -- -l ${PORT} --no-clipboard`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
