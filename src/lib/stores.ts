@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { memberColorAt } from "./member-colors";
 import type { Item, ItemDraft, Member } from "./types";
 
 type ApiKeyState = {
@@ -50,7 +51,11 @@ export const useBillStore = create<BillState>()(
         set((state) => ({
           members: [
             ...state.members,
-            { id: state.nextMemberId, name: "", color: "#000000" },
+            {
+              id: state.nextMemberId,
+              name: "",
+              color: memberColorAt(state.members.length),
+            },
           ],
           nextMemberId: state.nextMemberId + 1,
         })),
