@@ -1,5 +1,6 @@
 {
   "name": "billbuddy",
+  "description": "Split a restaurant receipt with friends",
   "version": "0.1.0",
   "private": true,
   "scripts": {
