@@ -107,7 +107,11 @@ export function ApiKeyDialog({
         </div>
         <DialogFooter>
           {dismissable ? (
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              variant="outline"
+              className="h-10"
+              onClick={() => onOpenChange(false)}
+            >
               Cancel
             </Button>
           ) : null}
